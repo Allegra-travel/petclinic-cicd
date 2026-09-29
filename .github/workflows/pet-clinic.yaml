@@ -217,27 +217,6 @@ jobs:
       - name: Upload JAR to Artifactory
         run: jf rt upload "target/*.jar" ${{ env.JFROG_REPO }}/
 
-  docker-build-push:
-    name: Build and Push to ECR
-    runs-on: ubuntu-latest
-    needs: publish
-    if: |
-      github.ref == 'refs/heads/main' &&
-      github.event_name == 'push'
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
- 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ env.AWS_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
- 
-      - name: Login to ECR
 docker-build-push:
     name: Build and Push to ECR
     runs-on: ubuntu-latest
@@ -277,7 +256,7 @@ docker-build-push:
           docker push \
             $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-docker-image-scan:
+  docker-image-scan:
     name: Trivy Scan - ECR Image
     runs-on: ubuntu-latest
     needs: docker-build-push
@@ -302,7 +281,6 @@ docker-image-scan:
           format: table
           exit-code: '0'
           severity: CRITICAL,HIGH
-
 deploy-ecs:
     name: Deploy to ECS
     runs-on: ubuntu-latest
@@ -324,8 +302,7 @@ deploy-ecs:
       - name: Download current ECS task definition
         run: |
           aws ecs describe-task-definition \
-
-       --task-definition ${{ env.ECS_SERVICE }} \
+            --task-definition ${{ env.ECS_SERVICE }} \
             --query taskDefinition \
             --output json > task-definition.json
 
